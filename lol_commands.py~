@@ -96,8 +96,8 @@ def game_lookup(summoner):
             if champions[champ]["id"] == str(id):
                 return champions[champ]["name"]
 
-    blue_bans = [champ_lookup(c) if champ_lookup(c) is not None else str(c) for c in blue_ban_id]
-    red_bans = [champ_lookup(c) if champ_lookup(c) is not None else str(c) for c in red_ban_id]
+    blue_bans = [champ_lookup(c) if champ_lookup(c) is not None else c for c in blue_ban_id]
+    red_bans = [champ_lookup(c) if champ_lookup(c) is not None else c for c in red_ban_id]
     blue_names = []
     blue = []
     red_names = []
