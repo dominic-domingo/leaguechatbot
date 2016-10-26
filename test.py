@@ -1,6 +1,8 @@
 import discord
 import asyncio
 import random
+import championgg
+import api
 
 client = discord.Client()
 
@@ -35,7 +37,7 @@ def on_message(message):
 
         yield from client.send_message(message.channel,
                                        "Looking for champions with highest win-rate for role: {}".format(role))
-        # ODO: actually look up winrates
+        # TODO: actually look up winrates
 
     elif message.content.startswith('!in_game'):
         summoner = message.content.split(" ", 1)[1]
@@ -54,6 +56,6 @@ def on_ready():
     print("-----")
 
 try:
-    client.run("MjQwNjM1ODUyNjAwOTAxNjQy.CvGPow.SGaukWfshdA8W0Z295m1dq7MDKM")
+    client.run(api.DISCORD_TOKEN)
 except discord.LoginFailure:
     print("Could not log in.")
