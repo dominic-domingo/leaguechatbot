@@ -3,7 +3,7 @@ import asyncio
 import random
 import championgg
 import api
-
+import time
 client = discord.Client()
 
 
@@ -33,18 +33,70 @@ def on_message(message):
             yield from client.send_message(message.channel, "Nope! It was {}.".format(answer))
 
     elif message.content.startswith('!r_winrate'):
-        role = message.content.split(" ", 1)[1]
+        try:
+            role = message.content.split(" ", 1)[1]
+        except IndexError:
+            yield from client.send_message(message.channel,
+                                           "Error with input! See !help for more info.")
+            return
 
         # TODO: actually look up winrates
         yield from client.send_message(message.channel,
                                        championgg.role_lookup(role))
 
-    elif message.content.startswith('!in_game'):
-        summoner = message.content.split(" ", 1)[1]
+    elif message.content.startswith('!banrate'):
+        yield from client.send_message(message.channel,
+                                       championgg.bans_lookup())
+
+    elif message.content.startswith('!ranked'):
+        try:
+            summoner = message.content.split(" ", 1)[1]
+        except IndexError:
+            yield from client.send_message(message.channel,
+                                           "Error with input! See !help for more info.")
+            return
 
         yield from client.send_message(message.channel,
-                                       "Looking up game data for summoner {}...".format(summoner))
+                                       "Looking up ranked data for {}...".format(summoner))
         # TODO: actually look up in game info
+        yield from client.send_message(message.channel,
+                                       championgg.summoner_lookup(summoner))
+
+    elif message.content.startswith("!coinflip") or message.content.startswith("!flip")\
+            or message.content.startswith("!coin"):
+        flip = random.randint(0,1)
+        msg = "It's {}!"
+        if flip:
+            yield from client.send_message(message.channel,
+                                           msg.format("heads"))
+        else:
+            yield from client.send_message(message.channel,
+                                           msg.format("tails"))
+
+    elif message.content.startswith("!monkey"):
+        #TODO: only check members that are in current server
+        monkeys = [x for x in client.get_all_members()]
+        index = random.randrange(0, len(monkeys))
+        mention = monkeys[index].mention
+        yield from client.send_message(message.channel, "{} is a boosted :monkey:!".format(mention))
+
+    elif message.content.startswith("!help"):
+        help_msg = \
+        '''
+        Commands:
+        !coinflip or !coin or !flip - flips a coin
+        !guess - plays a guessing game
+        !r_winrate [role] - finds champs with highest winrate for role
+        !banrate - finds champs with highest banrate
+        !ranked [summoner] - shows summoner's ranked info.
+        !help - show this message
+        '''
+
+        yield from client.send_message(message.channel,
+                                       help_msg)
+
+
+
 
 
 @client.event
@@ -54,6 +106,9 @@ def on_ready():
     print(client.user.name)
     print(client.user.id)
     print("-----")
+
+
+
 
 try:
     client.run(api.DISCORD_TOKEN)
