@@ -150,17 +150,18 @@ def lookup_by_id(ids: list):
         return "Rate limited! Try again in {} seconds...".format(retry_after)
 
     data = r.json()
-    try:
-        for id in ids:
+
+    for id in ids:
+        try:
             for k in data[str(id)]:
                 for e in k["entries"]:
                     if e["playerOrTeamId"] == str(id):
                         tier = k["tier"]
                         division = e["division"]
                         lp = e["leaguePoints"]
-                        info.append((tier, division, lp))
-    except KeyError:
-        pass
+        except: pass
+        finally:
+            info.append((tier, division, lp))
 
     return info
 
