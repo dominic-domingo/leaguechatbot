@@ -4,7 +4,8 @@ import random
 
 client = discord.Client()
 
-@client.event
+
+client.event
 @asyncio.coroutine
 def on_message(message):
     # bot should not reply to itself
