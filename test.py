@@ -1,7 +1,7 @@
 import discord
 import asyncio
 import random
-import championgg
+import lol_commands
 import api
 import time
 client = discord.Client()
@@ -40,13 +40,12 @@ def on_message(message):
                                            "Error with input! See !help for more info.")
             return
 
-        # TODO: actually look up winrates
         yield from client.send_message(message.channel,
-                                       championgg.role_lookup(role))
+                                       lol_commands.role_lookup(role))
 
     elif message.content.startswith('!banrate'):
         yield from client.send_message(message.channel,
-                                       championgg.bans_lookup())
+                                       lol_commands.bans_lookup())
 
     elif message.content.startswith('!ranked'):
         try:
@@ -58,9 +57,31 @@ def on_message(message):
 
         yield from client.send_message(message.channel,
                                        "Looking up ranked data for {}...".format(summoner))
-        # TODO: actually look up in game info
+
+        info = lol_commands.summoner_lookup(summoner)
+        summoner_info = ""
+        if isinstance(info, tuple):
+            summoner_info = \
+                '''
+                {} is in {} {} ({} LP), with a record of {}-{} ({:.3g}%).
+                '''.format(summoner, info[0], info[1], info[2], info[3], info[4], info[5])
+
+
         yield from client.send_message(message.channel,
-                                       championgg.summoner_lookup(summoner))
+                                       summoner_info if summoner_info else info)
+
+    elif message.content.startswith('!ingame'):
+        try:
+            summoner = message.content.split(" ", 1)[1]
+        except IndexError:
+            yield from client.send_message(message.channel,
+                                           "Error with input! See !help for more info.")
+            return
+
+        yield from client.send_message(message.channel,
+                                       "Looking up in-game data for {}...".format(summoner))
+        yield from client.send_message(message.channel,
+                                       lol_commands.game_lookup(summoner))
 
     elif message.content.startswith("!coinflip") or message.content.startswith("!flip")\
             or message.content.startswith("!coin"):
@@ -89,6 +110,7 @@ def on_message(message):
         !r_winrate [role] - finds champs with highest winrate for role
         !banrate - finds champs with highest banrate
         !ranked [summoner] - shows summoner's ranked info.
+        !ingame [summoner] - shows summoner's current game
         !help - show this message
         '''
 
