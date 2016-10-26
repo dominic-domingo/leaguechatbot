@@ -35,9 +35,9 @@ def on_message(message):
     elif message.content.startswith('!r_winrate'):
         role = message.content.split(" ", 1)[1]
 
-        yield from client.send_message(message.channel,
-                                       "Looking for champions with highest win-rate for role: {}".format(role))
         # TODO: actually look up winrates
+        yield from client.send_message(message.channel,
+                                       championgg.role_lookup(role))
 
     elif message.content.startswith('!in_game'):
         summoner = message.content.split(" ", 1)[1]
