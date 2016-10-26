@@ -5,7 +5,7 @@ import random
 client = discord.Client()
 
 
-client.event
+@client.event
 @asyncio.coroutine
 def on_message(message):
     # bot should not reply to itself
@@ -35,16 +35,14 @@ def on_message(message):
 
         yield from client.send_message(message.channel,
                                        "Looking for champions with highest win-rate for role: {}".format(role))
-        #TODO: actually look up winrates
+        # ODO: actually look up winrates
 
     elif message.content.startswith('!in_game'):
         summoner = message.content.split(" ", 1)[1]
 
         yield from client.send_message(message.channel,
                                        "Looking up game data for summoner {}...".format(summoner))
-        #TODO: actually look up in game info
-
-
+        # TODO: actually look up in game info
 
 
 @client.event
