@@ -137,9 +137,6 @@ def game_lookup(summoner):
 
 def lookup_by_id(ids: list):
     info = []
-    tier = "UNRANKED"
-    division = ":monkey:"
-    lp = 0
 
     f = ",".join(ids)
     r = requests.get \
@@ -153,6 +150,9 @@ def lookup_by_id(ids: list):
     data = r.json()
 
     for id in ids:
+        tier = "UNRANKED"
+        division = ":monkey:"
+        lp = 0
         try:
             for k in data[str(id)]:
                 for e in k["entries"]:
@@ -163,6 +163,7 @@ def lookup_by_id(ids: list):
         except: pass
         finally:
             info.append((tier, division, lp))
+
 
     return info
 
@@ -212,6 +213,12 @@ def summoner_lookup(summoner):
                     lp = e["leaguePoints"]
     except KeyError:
         pass
+    if tier == "CHALLENGER":
+        time.sleep(1)
+        r = requests.get \
+                ("https://na.api.pvp.net/api/lol/v2.5/league/challenger?typeRANKED_SOLO_5x5&api_key={}".format(api.LEAGUE_API_KEY))
+    elif tier == "MASTER":
+            pass
 
     winrate = (100 * wins / (wins + losses)) if losses != 0 else (100 * wins / wins) if wins > 0 else 0
 
