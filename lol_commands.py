@@ -102,11 +102,17 @@ def game_lookup(summoner):
     blue = []
     red_names = []
     red = []
+    game_mode = {"ODIN" : "Dominion", "ARAM" : "ARAM", "ONEFORALL" : "One For All", "ASCENSION": "Ascension"}
 
     game_info = "GAME TIME: {}".format(time.strftime("%M:%S", time.gmtime(180+data["gameLength"])))
-    game_info += "\n**BLUE SIDE**\n\tBans:\t"
-    print(blue_bans)
-    game_info += ', '.join(blue_bans)
+    game_info += "\n**BLUE SIDE**\n"
+    if len(blue_bans) > 0:
+        game_info += "\tBans:\t"
+        game_info += ', '.join(blue_bans)
+    elif data["gameMode"] == "CLASSIC":
+        game_info += "\tBLIND PICK"
+    else:
+        game_info += game_mode[data["gameMode"]]
     game_info += "\n"
     # teamId = 100
     for p in data["participants"]:
@@ -117,10 +123,16 @@ def game_lookup(summoner):
     blue_info = lookup_by_id(blue)
     for bn, b in zip(blue_names, blue_info):
         game_info += "**{}** ({} {}) on {}\n". \
-                format(bn[0], b[0], b[1], champ_lookup(bn[1]))
+            format(bn[0], b[0], b[1], champ_lookup(bn[1]))
 
-    game_info += "\n**RED SIDE**\n\tBans:\t"
-    game_info += ', '.join(red_bans)
+    game_info += "\n**RED SIDE**\n"
+    if len(red_bans) > 0:
+        game_info += "\tBans:\t"
+        game_info += ', '.join(red_bans)
+    elif data["gameMode"] == "CLASSIC":
+        game_info += "\tBLIND PICK"
+    else:
+        game_info += game_mode[data["gameMode"]]
     game_info += "\n"
     for p in data["participants"]:
         if p["teamId"] == 200:
@@ -173,13 +185,18 @@ def summoner_lookup(summoner):
     if int(summoner_id) < 0:
         return "Summoner not found!"
 
-    r = requests.get \
-        ("https://na.api.pvp.net/api/lol/na/v1.3/stats/by-summoner/{}/summary?season=SEASON2016&api_key={}" \
-         .format(summoner_id, api.LEAGUE_API_KEY))
+    while True:
+        r = requests.get \
+            ("https://na.api.pvp.net/api/lol/na/v1.3/stats/by-summoner/{}/summary?season=SEASON2016&api_key={}" \
+             .format(summoner_id, api.LEAGUE_API_KEY))
 
-    if r.status_code == 429:
-        retry_after = r.headers["Retry-After"]
-        return "Rate limited! Try again in {} seconds...".format(retry_after)
+        if r.status_code == 429:
+            retry_after = r.headers["Retry-After"]
+            print(("Rate limited! Trying again in {} seconds".format(retry_after)))
+            time.sleep(retry_after)
+
+        else:
+            break
 
     data = r.json()
     wins = None
@@ -214,26 +231,24 @@ def summoner_lookup(summoner):
     except KeyError:
         pass
 
+    url = "https://na.api.pvp.net/api/lol/na/v2.5/league/{}?type=RANKED_SOLO_5x5&api_key={}"
     if tier == "CHALLENGER":
-        url = "https://na.api.pvp.net/api/lol/v2.5/league/{}?type=RANKED_SOLO_5x5&api_key={}"
         time.sleep(1)
         r = requests.get \
                 (url.format("challenger", api.LEAGUE_API_KEY))
 
     elif tier == "MASTER":
-        url = "https://na.api.pvp.net/api/lol/v2.5/league/{}?type=RANKED_SOLO_5x5&api_key={}"
         time.sleep(1)
         r = requests.get \
             (url.format("master", api.LEAGUE_API_KEY))
 
     data = r.json()
-    print(data)
-    rank = "RANK "
+    rank = "#"
     try:
-        for k in zip(sorted(data["entries"], key = lambda x : x["leaguePoints"]), range(len(data["entries"]))):
-            if k[0]["playerOrTeamId"] == summoner_id:
-                rank += k[1] + 1
-                print(k[1])
+        for k in zip(sorted(data["entries"], key = lambda x : -x["leaguePoints"]), range(len(data["entries"]))):
+            if k[0]["playerOrTeamId"] == str(summoner_id):
+                rank += str(k[1] + 1)
+                break
     except KeyError:
         pass
 
