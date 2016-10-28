@@ -195,8 +195,8 @@ def summoner_lookup(summoner):
 
     time.sleep(0.5)
 
-    r = requests.get \
-        ("https://na.api.pvp.net/api/lol/na/v2.5/league/by-summoner/{}?api_key={}" \
+    r = requests.get\
+        ("https://na.api.pvp.net/api/lol/na/v2.5/league/by-summoner/{}?api_key={}"
          .format(summoner_id, api.LEAGUE_API_KEY))
 
     if r.status_code == 429:
@@ -213,13 +213,28 @@ def summoner_lookup(summoner):
                     lp = e["leaguePoints"]
     except KeyError:
         pass
+
     if tier == "CHALLENGER":
+        url = "https://na.api.pvp.net/api/lol/v2.5/league/{}?typeRANKED_SOLO_5x5&api_key={}"
         time.sleep(1)
         r = requests.get \
-                ("https://na.api.pvp.net/api/lol/v2.5/league/challenger?typeRANKED_SOLO_5x5&api_key={}".format(api.LEAGUE_API_KEY))
+                (url.format("challenger", api.LEAGUE_API_KEY))
+
     elif tier == "MASTER":
-            pass
+        url = "https://na.api.pvp.net/api/lol/v2.5/league/{}?typeRANKED_SOLO_5x5&api_key={}"
+        time.sleep(1)
+        r = requests.get \
+            (url.format("challenger", api.LEAGUE_API_KEY))
+
+    data = r.json()
+    rank = ""
+    try:
+        for k in zip(sorted(data["entries"], key = lambda x : x["leaguePoints"]), range(len(data["entries"]))):
+            if k[0]["playerOrTeamId"] == summoner_id:
+                rank = k[1] + 1
+    except KeyError:
+        pass
 
     winrate = (100 * wins / (wins + losses)) if losses != 0 else (100 * wins / wins) if wins > 0 else 0
 
-    return (tier, division, lp, wins, losses, winrate)
+    return (tier, division if tier != "CHALLENGER" or tier != "MASTER" else rank, lp, wins, losses, winrate)
