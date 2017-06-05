@@ -36,15 +36,19 @@ def role_lookup(role):
 
 def bans_lookup():
     highest_banrate = "The champions with the highest ban rate are: "
-    r = requests.get("http://api.champion.gg/stats/champs/mostBanned?api_key={}&page=1&limit=8"
+    r = requests.get("http://api.champion.gg/stats/champs/mostBanned?api_key={}&page=1&limit=25"
                      .format(api.CHAMPIONGG_API_KEY))
     data = r.json()
     champs = []
     try:
+        count = 1
         for k in data["data"]:
             if k["name"] not in champs:
-                highest_banrate += "\n {} ({})\t{}%BR".format(k["name"], k["role"], k["general"]["banRate"])
+                highest_banrate += "\n{}. {}\t{}%BR".format(count, k["name"], k["general"]["banRate"])
                 champs.append(k["name"])
+                count += 1
+                if len(champs) >= 10:
+                    break
         return highest_banrate
     except KeyError:
         return "Something went wrong...Status code {}.".format(r.status_code)
@@ -92,9 +96,11 @@ def game_lookup(summoner):
             red_ban_id.append(b["championId"])
 
     def champ_lookup(id):
-        for champ in champions:
-            if champions[champ]["id"] == str(id):
-                return champions[champ]["name"]
+        r = requests.get("http://ddragon.leagueoflegends.com/cdn/7.8.1/data/en_US/champion.json")
+        data = r.json()
+        for champ in data["data"].keys():
+            if data["data"][champ]["key"] == str(id):
+                return data["data"][champ]["name"]
 
     blue_bans = [champ_lookup(c) if champ_lookup(c) is not None else str(c) for c in blue_ban_id]
     red_bans = [champ_lookup(c) if champ_lookup(c) is not None else str(c) for c in red_ban_id]
@@ -187,7 +193,7 @@ def summoner_lookup(summoner):
 
     while True:
         r = requests.get \
-            ("https://na.api.pvp.net/api/lol/na/v1.3/stats/by-summoner/{}/summary?season=SEASON2016&api_key={}" \
+            ("https://na.api.pvp.net/api/lol/na/v1.3/stats/by-summoner/{}/summary?season=SEASON2017&api_key={}" \
              .format(summoner_id, api.LEAGUE_API_KEY))
 
         if r.status_code == 429:

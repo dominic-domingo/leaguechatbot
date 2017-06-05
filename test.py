@@ -32,7 +32,7 @@ def on_message(message):
         else:
             yield from client.send_message(message.channel, "Nope! It was {}.".format(answer))
 
-    elif message.content.startswith('!r_winrate'):
+    elif message.content.startswith('!r_winrate') or message.content.startswith('!wr') or message.content.startswith('!winrate'):
         try:
             role = message.content.split(" ", 1)[1]
         except IndexError:
@@ -43,7 +43,7 @@ def on_message(message):
         yield from client.send_message(message.channel,
                                        lol_commands.role_lookup(role))
 
-    elif message.content.startswith('!banrate'):
+    elif message.content.startswith('!banrate') or message.content.startswith('!br'):
         yield from client.send_message(message.channel,
                                        lol_commands.bans_lookup())
 
