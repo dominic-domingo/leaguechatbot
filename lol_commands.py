@@ -57,7 +57,7 @@ def bans_lookup():
 def get_summoner_id(summoner):
     id = None
     r = requests.get \
-        ("https://na.api.pvp.net/api/lol/na/v1.4/summoner/by-name/{}?api_key={}".format(summoner, api.LEAGUE_API_KEY))
+        ("https://na1.api.riotgames.com/lol/summoner/v3/summoners/by-name/{}?api_key={}".format(summoner, api.LEAGUE_API_KEY))
 
     if r.status_code == 429:
         retry_after = r.headers["Retry-After"]
@@ -65,7 +65,7 @@ def get_summoner_id(summoner):
 
     data = r.json()
     try:
-        return data[summoner]["id"]
+        return data["id"]
     except KeyError:
         return -1
 
@@ -76,7 +76,7 @@ def game_lookup(summoner):
         return "Summoner not found!"
 
     r = requests.get \
-        ("https://na.api.pvp.net/observer-mode/rest/consumer/getSpectatorGameInfo/NA1/{}?api_key={}" \
+        ("https://na1.api.riotgames.com/lol/spectator/v3/active-games/by-summoner/{}?api_key={}" \
          .format(summoner_id, api.LEAGUE_API_KEY))
 
     if r.status_code == 429:
@@ -87,16 +87,16 @@ def game_lookup(summoner):
 
     data = r.json()
     blue_ban_id = []
-    for b in data["bannedChampions"]:
-        if b["pickTurn"] % 2 != 0:
-            blue_ban_id.append(b["championId"])
     red_ban_id = []
+
     for b in data["bannedChampions"]:
-        if b["pickTurn"] % 2 == 0:
+        if b["teamId"] == 100:
+            blue_ban_id.append(b["championId"])
+        elif b["teamId"] == 200:
             red_ban_id.append(b["championId"])
 
     def champ_lookup(id):
-        r = requests.get("http://ddragon.leagueoflegends.com/cdn/7.8.1/data/en_US/champion.json")
+        r = requests.get("http://ddragon.leagueoflegends.com/cdn/7.19.1/data/en_US/champion.json")
         data = r.json()
         for champ in data["data"].keys():
             if data["data"][champ]["key"] == str(id):
@@ -156,31 +156,26 @@ def game_lookup(summoner):
 def lookup_by_id(ids: list):
     info = []
 
-    f = ",".join(ids)
-    r = requests.get \
-        ("https://na.api.pvp.net/api/lol/na/v2.5/league/by-summoner/{}?api_key={}" \
-         .format(f, api.LEAGUE_API_KEY))
-
-    if r.status_code == 429:
-        retry_after = r.headers["Retry-After"]
-        return "Rate limited! Try again in {} seconds...".format(retry_after)
-
-    data = r.json()
-
     for id in ids:
+        r = requests.get \
+            ("https://na1.api.riotgames.com/lol/league/v3/positions/by-summoner/{}?api_key={}" \
+             .format(id, api.LEAGUE_API_KEY))
+
+        if r.status_code == 429:
+            retry_after = r.headers["Retry-After"]
+            return "Rate limited! Try again in {} seconds...".format(retry_after)
+
+        data = r.json()
+        print(data)
         tier = "UNRANKED"
         division = ":monkey:"
         lp = 0
-        try:
-            for k in data[str(id)]:
-                for e in k["entries"]:
-                    if e["playerOrTeamId"] == str(id):
-                        tier = k["tier"]
-                        division = e["division"]
-                        lp = e["leaguePoints"]
-        except: pass
-        finally:
-            info.append((tier, division, lp))
+
+        tier = data[0]["tier"]
+        division = data[0]["rank"]
+        lp = data[0]["leaguePoints"]
+        info.append((tier, division, lp))
+        time.sleep(0.125)
 
 
     return info
@@ -193,7 +188,7 @@ def summoner_lookup(summoner):
 
     while True:
         r = requests.get \
-            ("https://na.api.pvp.net/api/lol/na/v1.3/stats/by-summoner/{}/summary?season=SEASON2017&api_key={}" \
+            ("https://na1.api.riotgames.com/lol/league/v3/positions/by-summoner/{}?api_key={}" \
              .format(summoner_id, api.LEAGUE_API_KEY))
 
         if r.status_code == 429:
@@ -205,59 +200,41 @@ def summoner_lookup(summoner):
             break
 
     data = r.json()
-    wins = None
-    losses = None
+    wins = 0
+    losses = 0
     tier = "UNRANKED"
     division = ":monkey:"
     lp = 0
-
-    for k in data["playerStatSummaries"]:
-        if k["playerStatSummaryType"] == "RankedSolo5x5":
-            wins = k["wins"]
-            losses = k["losses"]
+    print(data)
+    if len(data) > 0:
+        wins = data[0]["wins"]
+        losses = data[0]["losses"]
+        tier = data[0]["tier"]
+        division = data[0]["rank"]
+        lp = data[0]["leaguePoints"]
 
     time.sleep(0.5)
 
-    r = requests.get\
-        ("https://na.api.pvp.net/api/lol/na/v2.5/league/by-summoner/{}?api_key={}"
-         .format(summoner_id, api.LEAGUE_API_KEY))
+    url = "https://na1.api.riotgames.com/lol/league/v3/{}leagues/by-queue/RANKED_SOLO_5x5?api_key={}"
+    if tier == "CHALLENGER" or tier == "MASTER":
+        if tier == "CHALLENGER":
+            time.sleep(1)
+            r = requests.get(url.format("challenger", api.LEAGUE_API_KEY))
 
-    if r.status_code == 429:
-        retry_after = r.headers["Retry-After"]
-        return "Rate limited! Try again in {} seconds...".format(retry_after)
+        elif tier == "MASTER":
+            time.sleep(1)
+            r = requests.get(url.format("master", api.LEAGUE_API_KEY))
 
-    data = r.json()
-    try:
-        for k in data[str(summoner_id)]:
-            for e in k["entries"]:
-                if e["playerOrTeamId"] == str(summoner_id):
-                    tier = k["tier"]
-                    division = e["division"]
-                    lp = e["leaguePoints"]
-    except KeyError:
-        pass
-
-    url = "https://na.api.pvp.net/api/lol/na/v2.5/league/{}?type=RANKED_SOLO_5x5&api_key={}"
-    if tier == "CHALLENGER":
-        time.sleep(1)
-        r = requests.get \
-                (url.format("challenger", api.LEAGUE_API_KEY))
-
-    elif tier == "MASTER":
-        time.sleep(1)
-        r = requests.get \
-            (url.format("master", api.LEAGUE_API_KEY))
-
-    data = r.json()
-    rank = "#"
-    try:
-        for k in zip(sorted(data["entries"], key = lambda x : -x["leaguePoints"]), range(len(data["entries"]))):
-            if k[0]["playerOrTeamId"] == str(summoner_id):
-                rank += str(k[1] + 1)
-                break
-    except KeyError:
-        pass
+        data = r.json()
+        rank = "#"
+        try:
+            for k in zip(sorted(data["entries"], key = lambda x : -x["leaguePoints"]), range(len(data["entries"]))):
+                if k[0]["playerOrTeamId"] == str(summoner_id):
+                    rank += str(k[1] + 1)
+                    break
+        except KeyError:
+            pass
 
     winrate = (100 * wins / (wins + losses)) if losses != 0 else (100 * wins / wins) if wins > 0 else 0
 
-    return (tier, division if tier != "CHALLENGER" and tier != "MASTER" else rank, lp, wins, losses, winrate)
+    return tier, division if tier != "CHALLENGER" and tier != "MASTER" else rank, lp, wins, losses, winrate

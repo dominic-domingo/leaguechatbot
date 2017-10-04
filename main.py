@@ -107,8 +107,8 @@ def on_message(message):
         Commands:
         !coinflip or !coin or !flip - flips a coin
         !guess - plays a guessing game
-        !r_winrate [role] - finds champs with highest winrate for role
-        !banrate - finds champs with highest banrate
+        !r_winrate [role] or !wr [role] or !winrate [role] - finds champs with highest winrate for role
+        !banrate or !br - finds champs with highest banrate
         !ranked [summoner] - shows summoner's ranked info.
         !ingame [summoner] - shows summoner's current game
         !help - show this message
