@@ -3,11 +3,19 @@ import api
 from lol_data import champions
 import time
 
-roles = {"Top": ("top", "Top"),
-         "Jungle": ("Jungle", "jungle", "jg", "jung"),
-         "Middle": ("Middle", "middle", "Mid", "mid"),
-         "ADC": ("ADC", "adc", "AD", "ad" "Bot", "bot"),
-         "Support": ("Support", "support", "Supp", "supp", "Sup", "sup")}
+roles = {"TOP": ("top", "Top"),
+         "JUNGLE": ("Jungle", "jungle", "jg", "jung"),
+         "MIDDLE": ("Middle", "middle", "Mid", "mid"),
+         "DUO_CARRY": ("ADC", "adc", "AD", "ad" "Bot", "bot"),
+         "DUO_SUPPORT": ("Support", "support", "Supp", "supp", "Sup", "sup")}
+
+
+def champ_lookup(id):
+    r = requests.get("http://ddragon.leagueoflegends.com/cdn/7.22.1/data/en_US/champion.json")
+    data = r.json()
+    for champ in data["data"].keys():
+        if data["data"][champ]["key"] == str(id):
+            return data["data"][champ]["name"]
 
 
 def role_lookup(role):
@@ -19,13 +27,19 @@ def role_lookup(role):
 
     if corrected_role:
         highest_winrate = "The champions with the highest win rate for {} are: ".format(corrected_role)
-        r = requests.get('http://api.champion.gg/stats/role/{}/mostWinning?api_key={}&page=1&limit=5'
-                         .format(corrected_role, api.CHAMPIONGG_API_KEY))
+        r = requests.get('http://api.champion.gg/v2/champions?sort=winRate-desc&limit=130&api_key={}'
+                         .format(api.CHAMPIONGG_API_KEY))
         data = r.json()
         try:
-            for k in data["data"]:
-                highest_winrate += "\n {}\t{}%WR\t{}%PR".format(k["name"], k["general"]["winPercent"],
-                                                                k["general"]["playPercent"])
+            count = 0
+            for champ in data:
+                if champ["role"] == corrected_role:
+                    champ_name = champ_lookup(champ["championId"])
+                    highest_winrate += "\n {}\t{:.2f}%WR\t{:.2f}%PR".format(champ_name, champ["winRate"] * 100,
+                                                                   champ["playRate"] * 100)
+                    count += 1
+                    if count == 5:
+                        return highest_winrate
             return highest_winrate
         except KeyError:
             return "Something went wrong...Status code {}.".format(r.status_code)
@@ -36,16 +50,17 @@ def role_lookup(role):
 
 def bans_lookup():
     highest_banrate = "The champions with the highest ban rate are: "
-    r = requests.get("http://api.champion.gg/stats/champs/mostBanned?api_key={}&page=1&limit=25"
+    r = requests.get("http://api.champion.gg/v2/champions?sort=banRate-desc&limit=130&api_key={}"
                      .format(api.CHAMPIONGG_API_KEY))
     data = r.json()
     champs = []
     try:
         count = 1
-        for k in data["data"]:
-            if k["name"] not in champs:
-                highest_banrate += "\n{}. {}\t{}%BR".format(count, k["name"], k["general"]["banRate"])
-                champs.append(k["name"])
+        for k in data:
+            champ_name = champ_lookup(k["championId"])
+            if champ_name not in champs:
+                highest_banrate += "\n{}. {}\t{:.2f}%BR".format(count, champ_name, k["banRate"] * 100)
+                champs.append(champ_name)
                 count += 1
                 if len(champs) >= 10:
                     break
@@ -54,7 +69,7 @@ def bans_lookup():
         return "Something went wrong...Status code {}.".format(r.status_code)
 
 
-def get_summoner_id(summoner):
+def get_summoner_id_and_level(summoner):
     id = None
     r = requests.get \
         ("https://na1.api.riotgames.com/lol/summoner/v3/summoners/by-name/{}?api_key={}".format(summoner, api.LEAGUE_API_KEY))
@@ -64,14 +79,15 @@ def get_summoner_id(summoner):
         return "Rate limited! Try again in {} seconds...".format(retry_after)
 
     data = r.json()
+    print(data)
     try:
-        return data["id"]
+        return data["id"], data["summonerLevel"]
     except KeyError:
         return -1
 
 
 def game_lookup(summoner):
-    summoner_id = get_summoner_id(summoner.lower().replace(" ", ""))
+    summoner_id = get_summoner_id_and_level(summoner.lower().replace(" ", ""))[0]
     if int(summoner_id) < 0:
         return "Summoner not found!"
 
@@ -94,13 +110,6 @@ def game_lookup(summoner):
             blue_ban_id.append(b["championId"])
         elif b["teamId"] == 200:
             red_ban_id.append(b["championId"])
-
-    def champ_lookup(id):
-        r = requests.get("http://ddragon.leagueoflegends.com/cdn/7.19.1/data/en_US/champion.json")
-        data = r.json()
-        for champ in data["data"].keys():
-            if data["data"][champ]["key"] == str(id):
-                return data["data"][champ]["name"]
 
     blue_bans = [champ_lookup(c) if champ_lookup(c) is not None else str(c) for c in blue_ban_id]
     red_bans = [champ_lookup(c) if champ_lookup(c) is not None else str(c) for c in red_ban_id]
@@ -166,7 +175,6 @@ def lookup_by_id(ids: list):
             return "Rate limited! Try again in {} seconds...".format(retry_after)
 
         data = r.json()
-        print(data)
         tier = "UNRANKED"
         division = ":monkey:"
         lp = 0
@@ -177,19 +185,19 @@ def lookup_by_id(ids: list):
         info.append((tier, division, lp))
         time.sleep(0.125)
 
-
     return info
 
 
 def summoner_lookup(summoner):
-    summoner_id = get_summoner_id(summoner.lower().replace(" ", ""))
+    summoner = get_summoner_id_and_level(summoner.lower().replace(" ", ""))
+    summoner_id = summoner[0]
+    summoner_level = summoner[1]
     if int(summoner_id) < 0:
         return "Summoner not found!"
 
     while True:
-        r = requests.get \
-            ("https://na1.api.riotgames.com/lol/league/v3/positions/by-summoner/{}?api_key={}" \
-             .format(summoner_id, api.LEAGUE_API_KEY))
+        r = requests.get("https://na1.api.riotgames.com/lol/league/v3/positions/by-summoner/{}?api_key={}".format(
+            summoner_id, api.LEAGUE_API_KEY))
 
         if r.status_code == 429:
             retry_after = r.headers["Retry-After"]
@@ -206,12 +214,14 @@ def summoner_lookup(summoner):
     division = ":monkey:"
     lp = 0
     print(data)
-    if len(data) > 0:
-        wins = data[0]["wins"]
-        losses = data[0]["losses"]
-        tier = data[0]["tier"]
-        division = data[0]["rank"]
-        lp = data[0]["leaguePoints"]
+    for queue in data:
+        if queue["queueType"] == "RANKED_SOLO_5x5":
+            wins = queue["wins"]
+            losses = queue["losses"]
+            tier = queue["tier"]
+            division = queue["rank"]
+            lp = queue["leaguePoints"]
+            break
 
     time.sleep(0.5)
 
@@ -228,7 +238,7 @@ def summoner_lookup(summoner):
         data = r.json()
         rank = "#"
         try:
-            for k in zip(sorted(data["entries"], key = lambda x : -x["leaguePoints"]), range(len(data["entries"]))):
+            for k in zip(sorted(data["entries"], key=lambda x: -x["leaguePoints"]), range(len(data["entries"]))):
                 if k[0]["playerOrTeamId"] == str(summoner_id):
                     rank += str(k[1] + 1)
                     break
@@ -237,4 +247,4 @@ def summoner_lookup(summoner):
 
     winrate = (100 * wins / (wins + losses)) if losses != 0 else (100 * wins / wins) if wins > 0 else 0
 
-    return tier, division if tier != "CHALLENGER" and tier != "MASTER" else rank, lp, wins, losses, winrate
+    return summoner_level, tier, division if tier != "CHALLENGER" and tier != "MASTER" else rank, lp, wins, losses, winrate
