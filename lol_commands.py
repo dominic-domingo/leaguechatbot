@@ -179,9 +179,13 @@ def lookup_by_id(ids: list):
         division = ":monkey:"
         lp = 0
 
-        tier = data[0]["tier"]
-        division = data[0]["rank"]
-        lp = data[0]["leaguePoints"]
+        for queue in data:
+            if queue["queueType"] == "RANKED_SOLO_5x5":
+                tier = queue["tier"]
+                division = queue["rank"]
+                lp = queue["leaguePoints"]
+                break
+
         info.append((tier, division, lp))
         time.sleep(0.125)
 
