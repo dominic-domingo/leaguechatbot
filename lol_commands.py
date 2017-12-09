@@ -11,7 +11,7 @@ roles = {"TOP": ("top", "Top"),
 
 
 def champ_lookup(id):
-    r = requests.get("http://ddragon.leagueoflegends.com/cdn/7.22.1/data/en_US/champion.json")
+    r = requests.get("http://ddragon.leagueoflegends.com/cdn/7.24.1/data/en_US/champion.json")
     data = r.json()
     for champ in data["data"].keys():
         if data["data"][champ]["key"] == str(id):
@@ -227,7 +227,7 @@ def summoner_lookup(summoner):
             lp = queue["leaguePoints"]
             break
 
-    time.sleep(0.5)
+    time.sleep(0.25)
 
     url = "https://na1.api.riotgames.com/lol/league/v3/{}leagues/by-queue/RANKED_SOLO_5x5?api_key={}"
     if tier == "CHALLENGER" or tier == "MASTER":
