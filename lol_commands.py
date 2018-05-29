@@ -127,7 +127,7 @@ def game_lookup(summoner):
     elif data["gameMode"] == "CLASSIC":
         game_info += "\tBLIND PICK"
     else:
-        game_info += game_mode[data["gameMode"]]
+        game_info += game_mode[data["gameMode"]] if data["gameMode"] in game_mode else data["gameMode"]
     game_info += "\n"
     # teamId = 100
     for p in data["participants"]:
