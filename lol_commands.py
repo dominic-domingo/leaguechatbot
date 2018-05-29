@@ -11,7 +11,7 @@ roles = {"TOP": ("top", "Top"),
 
 
 def champ_lookup(id):
-    r = requests.get("http://ddragon.leagueoflegends.com/cdn/7.24.1/data/en_US/champion.json")
+    r = requests.get("http://ddragon.leagueoflegends.com/cdn/8.10.1/data/en_US/champion.json")
     data = r.json()
     for champ in data["data"].keys():
         if data["data"][champ]["key"] == str(id):
