@@ -11,7 +11,7 @@ roles = {"TOP": ("top", "Top"),
 
 
 def champ_lookup(id):
-    r = requests.get("http://ddragon.leagueoflegends.com/cdn/8.10.1/data/en_US/champion.json")
+    r = requests.get("http://ddragon.leagueoflegends.com/cdn/8.12.1/data/en_US/champion.json")
     data = r.json()
     for champ in data["data"].keys():
         if data["data"][champ]["key"] == str(id):
@@ -33,13 +33,14 @@ def role_lookup(role):
         try:
             count = 0
             for champ in data:
-                if champ["role"] == corrected_role:
-                    champ_name = champ_lookup(champ["championId"])
-                    highest_winrate += "\n {}\t{:.2f}%WR\t{:.2f}%PR".format(champ_name, champ["winRate"] * 100,
-                                                                   champ["playRate"] * 100)
-                    count += 1
-                    if count == 5:
-                        return highest_winrate
+                if champ["playRate"] >= 0.1:
+                    if champ["role"] == corrected_role:
+                        champ_name = champ_lookup(champ["championId"])
+                        highest_winrate += "\n {}\t{:.2f}%WR\t{:.2f}%PR".format(champ_name, champ["winRate"] * 100,
+                                                                       champ["playRate"] * 100)
+                        count += 1
+                        if count == 5:
+                            return highest_winrate
             return highest_winrate
         except KeyError:
             return "Something went wrong...Status code {}.".format(r.status_code)
